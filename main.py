@@ -25,7 +25,7 @@ with open(INPUT_FILE_NAME) as fin:
     # read the images into 
     for i in range(NUM_IMAGES):
         if (i % 1000 == 0):
-            print('read 1000 images')
+            print('read {} images'.format(i))
         tokens = fin.readline().split()
         orientation_list.append(tokens[0] == 'H')
         num_tags_list.append(tokens[1])
@@ -45,12 +45,23 @@ with open(INPUT_FILE_NAME) as fin:
 
 
 
+def random_connect(image_list, connectness_list):
+    for i in range(len(image_list)):
+        while (connectness_list[i] != 0):
+            for j in range(i+1, len(connectness_list)):
+                # if (connectness_list
+                pass
+
+
+
 connectness_list = [2 for i in range(NUM_IMAGES)]
 
 # connection_per_node: The connections tried for each image
 # threshhold_percent: Takes the threshhold_percent of best connections and iterative_connect the rest
 # connection_scale_factor: Try this times more connections in next iteration
-def iterative_connect(image_list, connectness_list, connection_per_node=3, threshhold_percent=0.1, connection_scale_factor=2):
+# giveup_threshhold: the number of images left to return random/optimal connections
+def iterative_connect(image_list, connectness_list, connection_per_node=3, threshhold_percent=0.1, 
+                       connection_scale_factor=2, giveup_threshhold=10):
     connections = []
     value_dict = {}
     for i in range(len(image_list)):
@@ -69,14 +80,14 @@ def iterative_connect(image_list, connectness_list, connection_per_node=3, thres
     sorted_connections = sorted(value_dict.items(), key=operator.itemgetter(1))
     # Take the threshhold amount of connections and apply iteratively for unconnected edges
     pending_connections = sorted_connections[int(len(sorted_connections) * (1 - threshhold_percent)):]
-    added_connections = []
+    final_connections = []
     for c in pending_connections:
         i = c[0][0]
         j = c[0][1]
         if (connectness_list[i] != 0 and connectness_list[j] != 0):
             connectness_list[i] -= 1
             connectness_list[j] -= 1
-            added_connections.append((i, j))
+            final_connections.append((i, j))
     # calculate the remaining nodes
     new_image_list = []
     new_connectioness_list = []
@@ -84,14 +95,18 @@ def iterative_connect(image_list, connectness_list, connection_per_node=3, thres
         if (connectness_list[i] != 0):
             new_image_list.append(image_list[i])
             new_connectioness_list.append(connectness_list[i])
-    # Call self again
-    if (len(new_image_list) > 10):
-        iterative_connect(new_image_list, new_connectioness_list, connection_per_node=connection_per_node*connection_scale_factor,
-                          threshhold_percent=threshhold_percent, connection_scale_factor=connection_scale_factor)
+    if (len(new_image_list) > giveup_threshhold):
+        # Call self again
+        return final_connections + iterative_connect(new_image_list, new_connectioness_list, 
+                                                     connection_per_node=connection_per_node*connection_scale_factor,
+                                                     threshhold_percent=threshhold_percent, 
+                                                     connection_scale_factor=connection_scale_factor)
     else:
+        # Return random connections if 
         print(new_connectioness_list)
         print(new_image_list)
+        return []
 
 
 
-iterative_connect(raw_image_list, connectness_list, connection_per_node=1, threshhold_percent=0.3, connection_scale_factor=2)
+print(iterative_connect(raw_image_list, connectness_list, connection_per_node=1, threshhold_percent=0.3, connection_scale_factor=2)[100:])
